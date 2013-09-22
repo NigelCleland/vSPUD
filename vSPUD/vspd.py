@@ -15,16 +15,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Import nzem
-import nzem
 
-# Load the plotting styles
-PLOT_STYLES = nzem.plotting.styles.colour_schemes
-
-# Get the config file
 try:
     CONFIG = json.load(open(os.path.join(
-    os.path.expanduser('~/python/nzem/nzem/_static'), 'config.json')))
+    os.path.expanduser('~/python/vSPUD/vSPUD/_static'), 'config.json')))
 except:
     print "CONFIG File does not exist"
 
