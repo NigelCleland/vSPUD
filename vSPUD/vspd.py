@@ -516,7 +516,7 @@ class vSPUD(object):
         return price_report
 
 
-    def price_report(self):
+    def price_report(self, cut_off=6000):
         """ Create a brief aggregation of the Reference Energy
         and Reserve prices as well as the reference price differentials
 
@@ -545,6 +545,12 @@ class vSPUD(object):
 
         nip = ni_prices[["DateTime"] + columns].copy()
         sip = si_prices[["DateTime"] + columns].copy()
+
+        nip = nip[nip["ReferencePrice ($/MWh)"] < cut_off]
+        sip = sip[sip["ReferencePrice ($/MWh)"] < cut_off]
+
+        nip = nip[nip["ReferencePrice ($/MWh)"] >= 0]
+        sip = sip[sip["ReferencePrice ($/MWh)"] >= 0]
 
         nip.rename(columns={x: " ".join(["NI", x]) for x in columns}, inplace=True)
         sip.rename(columns={x: " ".join(["SI", x]) for x in columns}, inplace=True)
