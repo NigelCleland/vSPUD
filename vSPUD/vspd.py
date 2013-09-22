@@ -793,7 +793,7 @@ class vSPUD(object):
             defined filters as desired
         """
 
-        def lambda_wrapper(func):
+        def lambda_wrapper(x, f=None):
             """ This is the second part of a nasty fix which
             attempts to get around some of the date issues raised by
             vSPD, it is ugly as fuck but should hopefully work
@@ -801,13 +801,13 @@ class vSPUD(object):
 
             if isinstance(x, datetime.datetime):
                 try:
-                    return func(x)
+                    return f(x)
                 except:
                     print "Cannot return date even though it is a datetime", x
             else:
                 try:
                     x = parse(x)
-                    return func(x)
+                    return f(x)
                 except:
                     print "Cannot parse the date either", x
 
@@ -818,24 +818,24 @@ class vSPUD(object):
         df[DateTime] = self.force_datetime_conv(df[DateTime])
 
         if day:
-            df["Day"] = df[DateTime].apply(lambda_wrapper(lambda x: x.date()))
+            df["Day"] = df[DateTime].apply(lambda_wrapper, f=lambda x: x.date())
 
         if month:
-            df["Month"] = df[DateTime].apply(lambda_wrapper(lambda x: x.month))
+            df["Month"] = df[DateTime].apply(lambda_wrapper, f=lambda x: x.month)
 
         if year:
-            df["Year"] = df[DateTime].apply(lambda_wrapper(lambda x: x.year))
+            df["Year"] = df[DateTime].apply(lambda_wrapper, f=lambda x: x.year)
 
         if month_year:
             my = lambda x: datetime.datetime(x.year, x.month, 1)
-            df["Month_Year"] = df[DateTime].apply(lambda_wrapper(my))
+            df["Month_Year"] = df[DateTime].apply(lambda_wrapper, f=my)
 
         if dayofyear:
-            df["Day_Of_Year"] = df[DateTime].apply(lambda_wrapper(lambda x: x.dayofyear))
+            df["Day_Of_Year"] = df[DateTime].apply(lambda_wrapper, f=lambda x: x.dayofyear)
 
         if period:
             pc = lambda x: x.hour * 2 + 1 + x.minute / 30
-            df["Period"] = df[DateTime].apply(lambda_wrapper(pc))
+            df["Period"] = df[DateTime].apply(lambda_wrapper, f=pc)
 
         return df
 
