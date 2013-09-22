@@ -8,6 +8,7 @@ import os
 import datetime
 import glob
 import simplejson as json
+from dateutil.parser import parse
 
 # C Library Imports
 
@@ -15,12 +16,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-try:
-    CONFIG = json.load(open(os.path.join(
-    os.path.expanduser('~/python/vSPUD/vSPUD/_static'), 'config.json')))
-except:
-    print "CONFIG File does not exist"
 
 class vSPUD_Factory(object):
     """docstring for ClassName"""
@@ -798,32 +793,83 @@ class vSPUD(object):
             defined filters as desired
         """
 
+        def lambda_wrapper(func):
+            """ This is the second part of a nasty fix which
+            attempts to get around some of the date issues raised by
+            vSPD, it is ugly as fuck but should hopefully work
+            """
+
+            if isinstance(x, datetime.datetime):
+                try:
+                    return func(x)
+                except:
+                    print "Cannot return date even though it is a datetime", x
+            else:
+                try:
+                    x = parse(x)
+                    return func(x)
+                except:
+                    print "Cannot parse the date either", x
+
+
         if not inplace:
             df = df.copy()
 
-        df[DateTime] = pd.to_datetime(df[DateTime])
+        df[DateTime] = self.force_datetime_conv(df[DateTime])
 
         if day:
-            df["Day"] = df[DateTime].apply(lambda x: x.date())
+            df["Day"] = df[DateTime].apply(lambda_wrapper(lambda x: x.date()))
 
         if month:
-            df["Month"] = df[DateTime].apply(lambda x: x.month)
+            df["Month"] = df[DateTime].apply(lambda_wrapper(lambda x: x.month))
 
         if year:
-            df["Year"] = df[DateTime].apply(lambda x: x.year)
+            df["Year"] = df[DateTime].apply(lambda_wrapper(lambda x: x.year))
 
         if month_year:
             my = lambda x: datetime.datetime(x.year, x.month, 1)
-            df["Month_Year"] = df[DateTime].apply(my)
+            df["Month_Year"] = df[DateTime].apply(lambda_wrapper(my))
 
         if dayofyear:
-            df["Day_Of_Year"] = df[DateTime].apply(lambda x: x.dayofyear)
+            df["Day_Of_Year"] = df[DateTime].apply(lambda_wrapper(lambda x: x.dayofyear))
 
         if period:
             pc = lambda x: x.hour * 2 + 1 + x.minute / 30
-            df["Period"] = df[DateTime].apply(pc)
+            df["Period"] = df[DateTime].apply(lambda_wrapper(pc))
 
         return df
+
+    def force_datetime_conv(self, series):
+        """ note this is a really nasty fix to get around some issues
+        in the vSPD output format. Broadly it's spitting out DataFrames
+        which Pandas does not recognise, what this function does is it
+        iterates through a unique set of the dates and attempts to
+        create a mapping of them for a number of formats. It then Returns
+        this as a dictionary which it maps to the series.
+
+        However, this can still fail and is the reason for the additional
+        wrapper above which goes around one of the lambda functions.
+        fuck vSPD, this is ridiculous!
+
+        """
+        datetime_dict = {}
+        for val in series.unique():
+            try:
+                datetime_dict[val] = parse(val)
+            except:
+                pass
+
+            try:
+                datetime_dict[val] = datetime.datetime.strptime(val, "%d-%b-%Y %h:%M")
+            except:
+                pass
+
+            try:
+                datetime_dict[val] = datetime.datetime.strptime(val, "%d-%b-%Y %h;%M")
+            except:
+                pass
+
+        return series.map(datetime_dict)
 
 
     def _load_data(self, island=False, summary=False, system=False,
@@ -899,7 +945,9 @@ class vSPUD(object):
         """
 
         if not isinstance(map_frame, pd.DataFrame):
-            map_frame = pd.read_csv(CONFIG['map-location'])
+            map_frame = pd.read_csv(os.path.join('/home', 'nigel', 'python',
+                                                 'vSPUD', 'vSPUD', '_static',
+                                                 'nodal_metadata.csv'))
             map_frame = map_frame[["Node", "Region", "Island Name", "Generation Type"]]
 
         return df.merge(map_frame, left_on=left_on, right_on=right_on)
