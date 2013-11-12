@@ -119,13 +119,16 @@ class vSPUD_Factory(object):
 
         return self.load_results(island_results=True, summary_results=True,
                 system_results=True, bus_results=True, reserve_results=True,
-                trader_results=True, offer_results=True, branch_results=True)
+                trader_results=True, offer_results=True, branch_results=True,
+                branch_constraints_results=True, node_constraints_results=True)
 
 
 
     def load_results(self, island_results=None, summary_results=None,
                 system_results=None, bus_results=None, reserve_results=None,
-                trader_results=None, offer_results=None, branch_results=None):
+                trader_results=None, offer_results=None, branch_results=None,
+                branch_constraints_results=None,
+                node_constraints_results=None):
         """ Load vSPUD objects with information from the folders as
         specified by the key word arguments above.
 
@@ -181,11 +184,23 @@ class vSPUD_Factory(object):
             branch_results = pd.concat((x.branch_results for
                 x in self._yield_results(branch=True)),ignore_index=True)
 
+        if branch_constraints_results:
+            branch_constraints_results = pd.concat((
+                x.branch_constraints_results for x in self._yield_results(
+                    branch_constraints=True)), ignore_index=True)
+
+        if node_constraints_results:
+            node_constraints_results = pd.concat((
+                    x.node_constraints_results for x in self._yield_results(
+                        node_constraints=True)), ignore_index=True)
+
         return vSPUD(reserve_results=reserve_results,
                 island_results=island_results, summary_results=summary_results,
                 system_results=system_results, bus_results=bus_results,
                 trader_results=trader_results, offer_results=offer_results,
-                branch_results=branch_results)
+                branch_results=branch_results,
+                branch_constraints_results=branch_constraints_results,
+                node_constraints_results=node_constraints_results)
 
 
     def _yield_results(self, **kargs):
@@ -199,6 +214,7 @@ class vSPUD(object):
     def __init__(self, folder=None, island_results=None, summary_results=None,
                 system_results=None, bus_results=None, reserve_results=None,
                 trader_results=None, offer_results=None, branch_results=None,
+                branch_constraints_results=None, node_constraints_results=None,
                  **kargs):
         """ Initialise a blank vSPUD object. It is intended to pass either:
         a) a folder containing vSPD results
@@ -257,6 +273,8 @@ class vSPUD(object):
         self.trader_results = trader_results
         self.offer_results = offer_results
         self.branch_results = branch_results
+        self.branch_constraints_results = branch_constraints_results
+        self.node_constraints_results = node_constraints_results
 
         if folder:
             self.folder = folder
@@ -880,7 +898,7 @@ class vSPUD(object):
 
     def _load_data(self, island=False, summary=False, system=False,
         bus=False, reserve=False, trader=False, offer=False, branch=False,
-        node=False):
+        node=False, branch_constraints=False, node_constraints=False):
         """
         Load all of the vSPD data from the given folder.
         If possible pass the folder as an absolute path to minimise issues.
@@ -901,6 +919,8 @@ class vSPUD(object):
         self.trader_results: DataFrame
         self.offer_results: DataFrame
         self.branch_results: DataFrame
+        self.branch_constraints_results: DataFrame
+        self.node_constraints_results: DataFrame
         """
 
         folder_contents = glob.glob(os.path.join(self.folder, '*.csv'))
@@ -925,6 +945,10 @@ class vSPUD(object):
             self.offer_results = pd.read_csv(folder_dict["OfferResults"])
         if branch:
             self.branch_results = pd.read_csv(folder_dict["BranchResults"])
+        if branch_constraints:
+            self.branch_constraints_results = pd.read_csv(folder_dict["BrConstraintResults"])
+        if node_constraints:
+            self.node_constraints_results = pd.read_csv(folder_dict["MNodeConstraintResults"])
 
     def _map_nodes(self, df, map_frame=None, left_on=None, right_on="Node"):
         """ Map a DataFrame by its nodal location to a range of metadata
