@@ -59,6 +59,17 @@ class vSPUD_Factory(object):
         if patterns:
             self.match_pattern(patterns=patterns)
 
+    def match_multiple_patterns(self, all_pattern, partial_patterns):
+        """ Match multiple patterns, apply an all pattern match first """
+        folders = [dire for (dire, subdir,
+                files) in os.walk(self.master_folder) if files and
+                self._match('.csv', files)]
+
+        subfolders = [x for x in folders if all_pattern in x]
+
+        subf = [x for x in subfolders if self._multi_match(x, partial_patterns)]
+        self.sub_folders = subf
+
 
     def match_pattern(self, patterns):
         """
@@ -83,6 +94,12 @@ class vSPUD_Factory(object):
                 self._match('.csv', files)]
         subfolders = [x for x in folders if self._matcher(x, patterns)]
         self.sub_folders = subfolders
+
+    def _multi_match(self, subject, iterable):
+        for item in iterable:
+            if item in subject:
+                return True
+        return False
 
 
     def _matcher(self, a, p):
@@ -120,7 +137,8 @@ class vSPUD_Factory(object):
         return self.load_results(island_results=True, summary_results=True,
                 system_results=True, bus_results=True, reserve_results=True,
                 trader_results=True, offer_results=True, branch_results=True,
-                branch_constraints_results=True, node_constraints_results=True)
+                branch_constraints_results=True, node_constraints_results=True,
+                node_results=True)
 
 
 
@@ -128,7 +146,7 @@ class vSPUD_Factory(object):
                 system_results=None, bus_results=None, reserve_results=None,
                 trader_results=None, offer_results=None, branch_results=None,
                 branch_constraints_results=None,
-                node_constraints_results=None):
+                node_constraints_results=None, node_results=None):
         """ Load vSPUD objects with information from the folders as
         specified by the key word arguments above.
 
@@ -194,13 +212,17 @@ class vSPUD_Factory(object):
                     x.node_constraints_results for x in self._yield_results(
                         node_constraints=True)), ignore_index=True)
 
+        if node_results:
+            node_results = pd.concat((x.node_results for x in self._yield_results(node=True)), ignore_index=True)
+
         return vSPUD(reserve_results=reserve_results,
                 island_results=island_results, summary_results=summary_results,
                 system_results=system_results, bus_results=bus_results,
                 trader_results=trader_results, offer_results=offer_results,
                 branch_results=branch_results,
                 branch_constraints_results=branch_constraints_results,
-                node_constraints_results=node_constraints_results)
+                node_constraints_results=node_constraints_results,
+                node_results=node_results)
 
 
     def _yield_results(self, **kargs):
@@ -215,7 +237,7 @@ class vSPUD(object):
                 system_results=None, bus_results=None, reserve_results=None,
                 trader_results=None, offer_results=None, branch_results=None,
                 branch_constraints_results=None, node_constraints_results=None,
-                 **kargs):
+                node_results=None, **kargs):
         """ Initialise a blank vSPUD object. It is intended to pass either:
         a) a folder containing vSPD results
         b) At least one of the *_results etc as a DataFrame
@@ -275,6 +297,7 @@ class vSPUD(object):
         self.branch_results = branch_results
         self.branch_constraints_results = branch_constraints_results
         self.node_constraints_results = node_constraints_results
+        self.node_results = node_results
 
         if folder:
             self.folder = folder
