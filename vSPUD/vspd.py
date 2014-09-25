@@ -998,7 +998,7 @@ class vSPUD(object):
         """
 
         if not isinstance(map_frame, pd.DataFrame):
-            map_frame = pd.read_csv(os.path.join('/home', 'nigel', 'python',
+            map_frame = pd.read_csv(os.path.join('/home', 'ncle778', 'python',
                                                  'vSPUD', 'vSPUD', '_static',
                                                  'nodal_metadata.csv'))
             map_frame = map_frame[["Node", "Region", "Island Name", "Generation Type"]]
